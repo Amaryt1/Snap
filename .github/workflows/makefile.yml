@@ -1,4 +1,4 @@
-name: Build Theos Tweak
+name: Build Theos Tweak & Export Dylib
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout Code
@@ -17,16 +17,28 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Theos Environment
-        uses: theos/setup-theos@v1
+      - name: Install & Setup Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+
+      - name: Install iOS SDKs
+        run: |
+          curl -LO https://github.com/theos/sdks/archive/master.zip
+          unzip -q master.zip
+          mv sdks-master/* $HOME/theos/sdks/
+          rm -rf sdks-master master.zip
 
       - name: Compile Package
         run: |
           make clean
           make package FINALPACKAGE=1
 
-      - name: Upload Output Artifact
+      - name: Upload Output Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Built-Tweak
-          path: packages/*.deb
+          name: Tweak-Output-Files
+          path: |
+            packages/*.deb
+            .theos/obj/*.dylib
+            .theos/obj/debug/*.dylib
