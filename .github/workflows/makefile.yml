@@ -1,27 +1,32 @@
-name: Makefile CI
+name: Build Theos Tweak
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: configure
-      run: ./configure
+      - name: Setup Theos Environment
+        uses: theos/setup-theos@v1
 
-    - name: Install dependencies
-      run: make
+      - name: Compile Package
+        run: |
+          make clean
+          make package FINALPACKAGE=1
 
-    - name: Run check
-      run: make check
-
-    - name: Run distcheck
-      run: make distcheck
+      - name: Upload Output Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Built-Tweak
+          path: packages/*.deb
