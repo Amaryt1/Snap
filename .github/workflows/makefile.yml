@@ -33,6 +33,26 @@ jobs:
           mv sdks-master/* $GITHUB_WORKSPACE/theos/sdks/
           rm -rf sdks-master master.zip
 
+      - name: Auto-Create Filter Plist
+        run: |
+          if [ ! -f "SnapCloneEngine.plist" ] && [ ! -f "Filter.plist" ]; then
+            cat << 'EOF' > SnapCloneEngine.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>Filter</key>
+              <dict>
+                  <key>Bundles</key>
+                  <array>
+                      <string>com.toyopagroup.picaboo</string>
+                  </array>
+              </dict>
+          </dict>
+          </plist>
+          EOF
+          fi
+
       - name: Compile Package
         run: |
           make clean
