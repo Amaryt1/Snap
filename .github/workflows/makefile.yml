@@ -33,8 +33,9 @@ jobs:
           mv sdks-master/* $GITHUB_WORKSPACE/theos/sdks/
           rm -rf sdks-master master.zip
 
-      - name: Auto-Create Filter Plist
+      - name: Auto-Create Missing Configuration Files
         run: |
+          # إنشاء ملف Filter.plist في حال عدم وجوده
           if [ ! -f "SnapCloneEngine.plist" ] && [ ! -f "Filter.plist" ]; then
             cat << 'EOF' > SnapCloneEngine.plist
           <?xml version="1.0" encoding="UTF-8"?>
@@ -50,6 +51,21 @@ jobs:
               </dict>
           </dict>
           </plist>
+          EOF
+          fi
+
+          # إنشاء ملف control المفقود تلقائياً
+          if [ ! -f "control" ] && [ ! -f "layout/DEBIAN/control" ]; then
+            cat << 'EOF' > control
+          Package: com.developer.snapcloneengine
+          Name: SnapCloneEngine
+          Depends: mobilesubstrate
+          Version: 1.0.0
+          Architecture: iphoneos-arm
+          Description: Snap Clone Engine Tweak
+          Maintainer: Developer
+          Author: Developer
+          Section: Tweaks
           EOF
           fi
 
