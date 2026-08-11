@@ -11,12 +11,13 @@ static NSString *const kDylibName      = @"SnapCloneEngine.dylib";
 
 %hook NSBundle
 - (NSString *)bundleIdentifier {
-    // تزوير المعرف عند طلب النظام أو كود التطبيق الداخلي
     return kTargetBundleID;
 }
 
 - (NSDictionary *)infoDictionary {
-    NSMutableDictionary *dict = [%orig mutableCopy];
+    // فصل استدعاء %orig في متغير مستقل لمنع خطأ المترجم (expected identifier)
+    NSDictionary *origDict = %orig;
+    NSMutableDictionary *dict = [origDict mutableCopy];
     if (dict) {
         dict[(NSString *)kCFBundleIdentifierKey] = kTargetBundleID;
     }
@@ -40,25 +41,30 @@ static NSString *const kDylibName      = @"SnapCloneEngine.dylib";
 
 %hookf(OSStatus, SecItemAdd, CFDictionaryRef attributes, CFTypeRef *result) {
     NSMutableDictionary *dict = [(__bridge NSDictionary *)attributes mutableCopy];
-    dict[(__bridge id)kSecAttrAccessGroup] = kCloneAppGroup;
+    if (dict) {
+        dict[(__bridge id)kSecAttrAccessGroup] = kCloneAppGroup;
+    }
     return %orig((__bridge CFDictionaryRef)dict, result);
 }
 
 %hookf(OSStatus, SecItemCopyMatching, CFDictionaryRef query, CFTypeRef *result) {
     NSMutableDictionary *dict = [(__bridge NSDictionary *)query mutableCopy];
-    dict[(__bridge id)kSecAttrAccessGroup] = kCloneAppGroup;
+    if (dict) {
+        dict[(__bridge id)kSecAttrAccessGroup] = kCloneAppGroup;
+    }
     return %orig((__bridge CFDictionaryRef)dict, result);
 }
 
 %hookf(OSStatus, SecItemUpdate, CFDictionaryRef query, CFDictionaryRef attributesToUpdate) {
     NSMutableDictionary *dictQuery = [(__bridge NSDictionary *)query mutableCopy];
-    dictQuery[(__bridge id)kSecAttrAccessGroup] = kCloneAppGroup;
+    if (dictQuery) {
+        dictQuery[(__bridge id)kSecAttrAccessGroup] = kCloneAppGroup;
+    }
     return %orig((__bridge CFDictionaryRef)dictQuery, attributesToUpdate);
 }
 
 #pragma mark - 3. Anti-Tweak / Dyld Image Cloaking
 
-// إخفاء الـ Dylib المحقون من دوال الفحص التي تحاول قراءة المكتبات المحملة في الذاكرة
 %hookf(uint32_t, _dyld_image_count) {
     uint32_t count = %orig;
     return count > 0 ? count - 1 : count;
@@ -76,7 +82,6 @@ static NSString *const kDylibName      = @"SnapCloneEngine.dylib";
 
 %ctor {
     @autoreleasepool {
-        // تنفيذ الحقن في مرحلة مبكرة جداً قبل تشغيل دوال App-Delegate
         %init;
     }
 }
